@@ -1,6 +1,5 @@
 FROM node:18-slim
 
-# 1. Устанавливаем зависимости для Puppeteer (Chromium)
 RUN apt-get update && apt-get install -y \
     wget gnupg ca-certificates \
     libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 libxcomposite1 \
@@ -9,19 +8,21 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# 2. Копируем корневой package.json и ставим зависимости бэкенда
+# 1. Бэкенд зависимости
 COPY package*.json ./
 RUN npm install --omit=dev
 
-# 3. Копируем фронтенд, ставим зависимости и собираем его
+# 2. Фронтенд сборка
 COPY frontend/ ./frontend/
 RUN cd frontend && npm install && npm run build
 
-# 4. Копируем код сервера и шрифты
+# 3. ВАЖНО: Выводим содержимое папки dist в логи Railway
+RUN echo "=== ПРОВЕРКА ПАПКИ DIST ===" && ls -laR frontend/dist
+
+# 4. Код сервера и шрифты
 COPY server.js ./
 COPY fonts/ ./fonts/
 
-# 5. Настройки окружения для Railway
 ENV HOST=0.0.0.0
 ENV PORT=8080
 
