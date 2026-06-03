@@ -57,7 +57,6 @@ function App() {
         <h3>Предпросмотр (A4)</h3>
         <div className="certificate-preview">
           <div className="preview-border"></div>
-          <div className="preview-title">СЕРТИФИКАТ</div>
           <div className="preview-name">{fullName || 'ФИО Получателя'}</div>
           <div className="preview-date">Дата выдачи: {issueDate}</div>
         </div>
