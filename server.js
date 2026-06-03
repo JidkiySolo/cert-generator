@@ -6,7 +6,7 @@ const fs = require('fs');
 
 const app = express();
 app.use(cors({ origin: '*' }));
-app.use(express.json({ limit: '2mb' })); // Увеличил лимит на случай больших base64
+app.use(express.json({ limit: '2mb' }));
 
 let browser;
 
@@ -26,8 +26,10 @@ const escapeHtml = (str) => String(str).replace(/[&<>"'`=\/]/g, s => `&#${s.char
 
 app.post('/api/generate', async (req, res) => {
   try {
-    const { fullName, issueDate } = req.body;
-    if (!fullName || !issueDate) return res.status(400).json({ error: 'Поля обязательны' });
+    const { fullName, organization } = req.body;
+    if (!fullName || !organization) {
+      return res.status(400).json({ error: 'Поля fullName и organization обязательны' });
+    }
 
     // 1. Читаем шрифт в Base64
     const fontPath = path.join(__dirname, 'fonts', 'Montserrat-Regular.ttf');
@@ -47,7 +49,7 @@ app.post('/api/generate', async (req, res) => {
       console.warn('⚠️ Шаблон template.png НЕ НАЙДЕН! Проверьте папку frontend/public/');
     }
 
-    // 3. Формируем HTML
+    // 3. Формируем HTML (без заголовка, с организацией)
     const html = `<!DOCTYPE html>
     <html>
     <head>
@@ -61,20 +63,9 @@ app.post('/api/generate', async (req, res) => {
         body { 
           width: 210mm; 
           height: 297mm; 
-          /* Встраиваем картинку напрямую. Если её нет, будет белый фон */
           background: #ffffff url('${templateBase64}') center/cover no-repeat; 
           position: relative; 
           font-family: 'CertFont', sans-serif; 
-        }
-        .title {
-          position: absolute;
-          top: 40mm; left: 0; right: 0;
-          text-align: center;
-          font-size: 48px;
-          color: #1a365d;
-          text-transform: uppercase;
-          letter-spacing: 4px;
-          font-weight: bold;
         }
         .name {
           position: absolute;
@@ -82,19 +73,20 @@ app.post('/api/generate', async (req, res) => {
           text-align: center;
           font-size: 42px;
           color: #2d3748;
-          /* Подчеркивание УДАЛЕНО */
         }
-        .date {
+        .org {
           position: absolute;
-          bottom: 30mm; right: 20mm;
-          font-size: 18px;
+          bottom: 30mm; left: 20mm; right: 20mm;
+          text-align: center;
+          font-size: 24px;
           color: #4a5568;
+          font-weight: 600;
         }
       </style>
     </head>
     <body>
       <div class="name">${escapeHtml(fullName)}</div>
-      <div class="date">Дата выдачи: ${escapeHtml(issueDate)}</div>
+      <div class="org">${escapeHtml(organization)}</div>
     </body>
     </html>`;
 
@@ -104,7 +96,7 @@ app.post('/api/generate', async (req, res) => {
     
     const pdfBuffer = await page.pdf({ 
       format: 'A4', 
-      printBackground: true, // Обязательно для фонов
+      printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 }, 
       preferCSSPageSize: true 
     });
@@ -128,7 +120,7 @@ app.get('*', (req, res) => {
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send('Frontend not found. Run npm run build in frontend folder.');
+    res.status(404).send('Frontend not found.');
   }
 });
 
